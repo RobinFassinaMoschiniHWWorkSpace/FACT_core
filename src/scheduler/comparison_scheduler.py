@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import logging
 import os
 from multiprocessing import Queue, Value
 from queue import Empty
 
+import config
 from compare.compare import Compare
-from config import cfg
 from helperFunctions.data_conversion import convert_compare_id_to_list
 from helperFunctions.process import check_worker_exceptions, new_worker_was_started, start_single_worker
 from storage.db_interface_admin import AdminDbInterface
@@ -12,11 +14,11 @@ from storage.db_interface_comparison import ComparisonDbInterface
 
 
 class ComparisonScheduler:
-    '''
+    """
     This module handles all request regarding comparisons
-    '''
+    """
 
-    def __init__(self, db_interface=None, admin_db_interface=None, testing=False, callback=None):
+    def __init__(self, db_interface=None, admin_db_interface=None, callback=None):
         self.db_interface = db_interface if db_interface else ComparisonDbInterface()
         self.db_admin_interface = admin_db_interface or AdminDbInterface()
         self.stop_condition = Value('i', 1)
@@ -28,14 +30,15 @@ class ComparisonScheduler:
     def start(self):
         self.stop_condition.value = 0
         self.worker = start_single_worker(0, 'Comparison', self._comparison_scheduler_worker)
+        logging.info('Comparison scheduler online')
 
     def shutdown(self):
-        logging.debug('Shutting down...')
+        logging.debug('Shutting down comparison scheduler')
         if self.stop_condition.value == 0:
             self.stop_condition.value = 1
             self.worker.join()
         self.in_queue.close()
-        logging.info('Comparison Scheduler offline')
+        logging.info('Comparison scheduler offline')
 
     def add_task(self, comparison_task):
         comparison_id, redo = comparison_task
@@ -50,11 +53,11 @@ class ComparisonScheduler:
         comparisons_done = set()
         while self.stop_condition.value == 0:
             self._compare_single_run(comparisons_done)
-        logging.debug('Comparison thread terminated normally')
+        logging.debug(f'Stopped comparison worker {worker_id}')
 
     def _compare_single_run(self, comparisons_done):
         try:
-            comparison_id, redo = self.in_queue.get(timeout=cfg.expert_settings.block_delay)
+            comparison_id, redo = self.in_queue.get(timeout=config.backend.block_delay)
         except Empty:
             return
         if self._comparison_should_start(comparison_id, redo, comparisons_done):
@@ -70,7 +73,7 @@ class ComparisonScheduler:
             self.db_interface.add_comparison_result(
                 self.comparison_module.compare(convert_compare_id_to_list(comparison_id))
             )
-        except Exception:  # pylint: disable=broad-except
+        except Exception:
             logging.error(f'Fatal error in comparison process for {comparison_id}', exc_info=True)
 
     @staticmethod

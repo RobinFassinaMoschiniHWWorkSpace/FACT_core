@@ -1,6 +1,7 @@
 import json
 from base64 import standard_b64encode
 from copy import deepcopy
+from http import HTTPStatus
 from urllib.parse import quote
 
 import pytest
@@ -24,8 +25,8 @@ TEST_FW_PAYLOAD = {
 class DbMock(CommonDatabaseMock):
     @staticmethod
     def rest_get_firmware_uids(
-        limit: int = 10, offset: int = 0, query=None, recursive=False, inverted=False
-    ):  # pylint: disable=unused-argument
+        limit: int = 10, offset: int = 0, query=None, recursive=False, inverted=False  # noqa: ARG004
+    ):
         return [f'uid{i}' for i in range(offset, limit or 10)]
 
     @staticmethod
@@ -41,17 +42,17 @@ class TestRestFirmware:
         response = test_client.get('/rest/firmware').json
         assert 'error_message' not in response
         assert 'uids' in response
-        assert len(response['uids']) == 10
+        assert len(response['uids']) == 10  # noqa: PLR2004
 
     def test_request_with_query(self, test_client):
         query = {'vendor': 'no real vendor'}
         quoted_query = quote(json.dumps(query))
         response = test_client.get(f'/rest/firmware?query={quoted_query}').json
-        assert 'query' in response['request'].keys()
+        assert 'query' in response['request']
         assert response['request']['query'] == query
 
     def test_bad_query(self, test_client):
-        search_query = quote('{\'vendor\': \'no real vendor\'}')
+        search_query = quote("{'vendor': 'no real vendor'}")
         result = test_client.get(f'/rest/firmware?query={search_query}').json
         assert 'Query must be a json' in result['error_message']
 
@@ -80,7 +81,7 @@ class TestRestFirmware:
 
     def test_bad_put_request(self, test_client):
         response = test_client.put('/rest/firmware')
-        assert response.status_code == 400
+        assert response.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
 
     def test_submit_empty_data(self, test_client):
         response = test_client.put('/rest/firmware', json={}).json
@@ -132,7 +133,7 @@ class TestRestFirmware:
         assert result['status'] == 1
         assert 'has to be a list' in result['error_message']
 
-    def test_request_update_missing_parameter(self, test_client):  # pylint: disable=invalid-name
+    def test_request_update_missing_parameter(self, test_client):
         result = test_client.put(f'/rest/firmware/{TEST_FW.uid}').json
         assert result['status'] == 1
         assert 'missing parameter: update' in result['error_message']
@@ -145,7 +146,7 @@ class TestRestFirmware:
         assert sorted(result['request']['update']) == sorted(scheduled_analysis)
         assert 'unpacker' in result['request']['update']
 
-    def test_request_with_bad_recursive_flag(self, test_client):  # pylint: disable=invalid-name
+    def test_request_with_bad_recursive_flag(self, test_client):
         result = test_client.get('/rest/firmware?recursive=true').json
         assert result['status'] == 1
         assert 'only permissible with non-empty query' in result['error_message']

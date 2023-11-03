@@ -1,4 +1,4 @@
-'''
+"""
 This plugin implements a wrapper around the cwe_checker, which checks ELF executables for
 several CWEs (Common Weakness Enumeration). Please refer to cwe_checkers implementation for further information.
 Please note that these checks are heuristics and the checks are static.
@@ -10,13 +10,14 @@ Currently, the cwe_checker supports the following architectures:
 - ARM
 - PowerPC
 - Mips
-'''
+"""
 import json
 import logging
 from collections import defaultdict
 
 from docker.types import Mount
 
+import config
 from analysis.PluginBase import AnalysisBasePlugin
 from helperFunctions.docker import run_docker_container
 
@@ -24,9 +25,9 @@ DOCKER_IMAGE = 'fkiecad/cwe_checker:stable'
 
 
 class AnalysisPlugin(AnalysisBasePlugin):
-    '''
+    """
     This class implements the FACT Python wrapper for the BAP plugin cwe_checker.
-    '''
+    """
 
     NAME = 'cwe_checker'
     DESCRIPTION = (
@@ -35,16 +36,23 @@ class AnalysisPlugin(AnalysisBasePlugin):
         'CWE-676 (Use of Potentially Dangerous Function).'
         'Due to the nature of static analysis, this plugin may run for a long time.'
     )
-    DEPENDENCIES = ['cpu_architecture', 'file_type']
-    VERSION = '0.5.1'
+    DEPENDENCIES = ['cpu_architecture', 'file_type']  # noqa: RUF012
+    VERSION = '0.5.3'
     TIMEOUT = 600  # 10 minutes
-    MIME_WHITELIST = ['application/x-executable', 'application/x-object', 'application/x-sharedlib']
+    MIME_WHITELIST = [  # noqa: RUF012
+        'application/x-executable',
+        'application/x-object',
+        'application/x-pie-executable',
+        'application/x-sharedlib',
+    ]
     FILE = __file__
 
-    SUPPORTED_ARCHS = ['arm', 'x86', 'x64', 'mips', 'ppc']
+    SUPPORTED_ARCHS = ['arm', 'x86', 'x64', 'mips', 'ppc']  # noqa: RUF012
 
     def additional_setup(self):
         self._log_version_string()
+        self.memory_limit = getattr(config.backend.plugin.get(self.NAME, None), 'memory_limit', '4G')
+        self.swap_limit = getattr(config.backend.plugin.get(self.NAME, None), 'memswap_limit', '4G')
 
     def _log_version_string(self):
         output = self._run_cwe_checker_to_get_version_string()
@@ -73,6 +81,8 @@ class AnalysisPlugin(AnalysisBasePlugin):
             mounts=[
                 Mount('/input', file_object.file_path, type='bind'),
             ],
+            mem_limit=self.memory_limit,
+            memswap_limit=self.swap_limit,
         )
         return result.stdout
 
@@ -98,7 +108,7 @@ class AnalysisPlugin(AnalysisBasePlugin):
         return res
 
     def _is_supported_arch(self, file_object):
-        arch_type = file_object.processed_analysis['file_type']['full'].lower()
+        arch_type = file_object.processed_analysis['file_type']['result']['full'].lower()
         return any(supported_arch in arch_type for supported_arch in self.SUPPORTED_ARCHS)
 
     def _do_full_analysis(self, file_object):
@@ -118,15 +128,14 @@ class AnalysisPlugin(AnalysisBasePlugin):
         return file_object
 
     def process_object(self, file_object):
-        '''
+        """
         This function handles only ELF executables. Otherwise, it returns an empty dictionary.
         It calls the cwe_checker docker container.
-        '''
+        """
         if not self._is_supported_arch(file_object):
             logging.debug(
-                '{}\'s arch is not supported ({})'.format(
-                    file_object.file_path, file_object.processed_analysis['cpu_architecture']['summary']
-                )
+                f"{file_object.file_path}'s arch is not supported ("
+                f'{file_object.processed_analysis["cpu_architecture"]["summary"]})'
             )
             file_object.processed_analysis[self.NAME] = {'summary': []}
         else:

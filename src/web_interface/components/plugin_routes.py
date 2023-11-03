@@ -1,13 +1,8 @@
 import importlib
-import inspect
 import pkgutil
 
-from flask_restx import Resource
-
-from config import configparser_cfg
 from helperFunctions.fileSystem import get_src_dir
 from web_interface.components.component_base import ComponentBase
-from web_interface.rest.rest_resource_base import RestResourceBase
 
 ROUTES_MODULE_NAME = 'routes'
 PLUGIN_CATEGORIES = ['analysis', 'compare']
@@ -28,17 +23,14 @@ class PluginRoutes(ComponentBase):
     def _import_module_routes(self, plugin, plugin_type):
         module = importlib.import_module(f'plugins.{plugin_type}.{plugin}.{ROUTES_MODULE_NAME}.{ROUTES_MODULE_NAME}')
         if hasattr(module, 'PluginRoutes'):
-            module.PluginRoutes(self._app, db=self.db, intercom=self.intercom)
-        for rest_class in [
-            element
-            for element in [getattr(module, attribute) for attribute in dir(module)]
-            if inspect.isclass(element)
-            and issubclass(element, Resource)
-            and element not in [Resource, RestResourceBase]
-        ]:
-            for endpoint, methods in rest_class.ENDPOINTS:
+            module.PluginRoutes(self._app, db=self.db, intercom=self.intercom, status=self.status)
+        if hasattr(module, 'PluginRestRoutes'):
+            for endpoint, methods in module.PluginRestRoutes.ENDPOINTS:
                 self._api.add_resource(
-                    rest_class, endpoint, methods=methods, resource_class_kwargs={'config': configparser_cfg}
+                    module.PluginRestRoutes,
+                    endpoint,
+                    methods=methods,
+                    resource_class_kwargs={'db': self.db},
                 )
 
 

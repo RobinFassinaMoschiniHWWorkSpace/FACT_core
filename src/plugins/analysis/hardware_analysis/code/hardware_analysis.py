@@ -4,18 +4,17 @@ from analysis.PluginBase import AnalysisBasePlugin
 
 
 class AnalysisPlugin(AnalysisBasePlugin):
-    '''
+    """
     Hardware Analysis Plug-in
-    '''
+    """
 
     NAME = 'hardware_analysis'
     DESCRIPTION = 'Hardware Analysis Plug-in'
-    DEPENDENCIES = ['cpu_architecture', 'elf_analysis', 'kernel_config']
+    DEPENDENCIES = ['cpu_architecture', 'elf_analysis', 'kernel_config']  # noqa: RUF012
     VERSION = '0.2'
     FILE = __file__
 
     def process_object(self, file_object):
-
         # search for important information
         cpu_architecture = self.cpu_architecture_analysis(file_object)
         modinfo = self.get_modinfo(file_object)
@@ -43,11 +42,11 @@ class AnalysisPlugin(AnalysisBasePlugin):
     @staticmethod
     def get_modinfo(file_object):
         # getting the information from the *.ko files .modinfo
-        return file_object.processed_analysis['elf_analysis'].get('Output', {}).get('modinfo')
+        return file_object.processed_analysis['elf_analysis']['result'].get('Output', {}).get('modinfo')
 
     @staticmethod
     def filter_kernel_config(file_object):
-        kernel_config_dict = file_object.processed_analysis['kernel_config']
+        kernel_config_dict = file_object.processed_analysis['kernel_config']['result']
         kernel_config = kernel_config_dict.get('kernel_config')
         # FIXME: finer filter
         if isinstance(kernel_config, str):

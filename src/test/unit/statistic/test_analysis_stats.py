@@ -1,5 +1,3 @@
-# pylint: disable=wrong-import-order,redefined-outer-name
-
 import pytest
 
 from analysis.PluginBase import AnalysisBasePlugin
@@ -13,8 +11,8 @@ class MockPlugin(AnalysisBasePlugin):
     VERSION = '0.0'
     ANALYSIS_STATS_LIMIT = 5
 
-    def _add_plugin_version_and_timestamp_to_analysis_result(self, _):
-        pass
+    def _add_plugin_version_and_timestamp_to_analysis_result(self, fo):
+        return fo
 
 
 @pytest.fixture
@@ -30,7 +28,7 @@ def test_get_plugin_stats(mock_plugin):
     mock_plugin.analysis_stats[2] = 3.0
     mock_plugin.analysis_stats_count.value = 3
 
-    result = get_plugin_stats(mock_plugin)
+    result = get_plugin_stats(mock_plugin.analysis_stats, mock_plugin.analysis_stats_count)
     assert result == {
         'count': '3',
         'max': '3.00',
@@ -48,10 +46,10 @@ def test_update_duration_stats(mock_plugin):
     for _ in range(4):
         mock_plugin.add_job(fw)
         mock_plugin.out_queue.get(timeout=1)
-    assert mock_plugin.analysis_stats_count.value == mock_plugin.analysis_stats_index.value == 4
+    assert mock_plugin.analysis_stats_count.value == mock_plugin.analysis_stats_index.value == 4  # noqa: PLR2004
     mock_plugin.add_job(fw)
     mock_plugin.out_queue.get(timeout=1)
-    assert mock_plugin.analysis_stats_count.value == 5
+    assert mock_plugin.analysis_stats_count.value == 5  # noqa: PLR2004
     assert mock_plugin.analysis_stats_index.value == 0, 'index should start at 0 when max count is reached'
 
-    assert get_plugin_stats(mock_plugin) is not None
+    assert get_plugin_stats(mock_plugin.analysis_stats, mock_plugin.analysis_stats_count) is not None

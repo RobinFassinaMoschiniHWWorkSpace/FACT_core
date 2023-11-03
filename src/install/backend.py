@@ -7,8 +7,8 @@ from contextlib import suppress
 from pathlib import Path
 from subprocess import PIPE, STDOUT
 
+import config
 from compile_yara_signatures import main as compile_signatures
-from config import cfg
 from helperFunctions.fileSystem import get_src_dir
 from helperFunctions.install import (
     InstallationError,
@@ -87,7 +87,7 @@ def install_plugin_docker_images():
 def _create_firmware_directory():
     logging.info('Creating firmware directory')
 
-    data_dir_name = cfg.data_storage.firmware_file_storage_directory
+    data_dir_name = config.backend.firmware_file_storage_directory
     mkdir_process = subprocess.run(
         f'sudo mkdir -p --mode=0744 {data_dir_name}', shell=True, stdout=PIPE, stderr=STDOUT, text=True
     )
@@ -119,7 +119,7 @@ def _install_plugins(distribution, skip_docker, only_docker=False):
         logging.info(f'Finished installing {plugin_name} plugin.\n')
 
 
-def _install_yara():  # pylint: disable=too-complex
+def _install_yara():
     yara_version = 'v4.2.3'  # must be the same version as `yara-python` in `install/requirements_common.txt`
 
     yara_process = subprocess.run('yara --version', shell=True, stdout=PIPE, stderr=STDOUT, text=True)
@@ -139,7 +139,7 @@ def _install_yara():  # pylint: disable=too-complex
         raise InstallationError(f'Error on yara extraction.\n{unzip_process.stdout}')
     yara_folder = [p for p in Path('.').iterdir() if p.name.startswith('yara-')][0]
     with OperateInDirectory(yara_folder.name, remove=True):
-        os.chmod('bootstrap.sh', 0o775)
+        os.chmod('bootstrap.sh', 0o775)  # noqa: PTH101
         for command in ['./bootstrap.sh', './configure --enable-magic', 'make -j$(nproc)', 'sudo make install']:
             cmd_process = subprocess.run(command, shell=True, stdout=PIPE, stderr=STDOUT, text=True)
             if cmd_process.returncode != 0:

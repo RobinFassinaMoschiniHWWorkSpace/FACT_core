@@ -1,9 +1,8 @@
-# pylint: disable=no-self-use
 import pytest
 
 from compare.PluginBase import CompareBasePlugin as ComparePlugin
 from compare.PluginBase import _get_unmatched_dependencies
-from test.common_helper import CommonDatabaseMock, create_test_firmware  # pylint: disable=wrong-import-order
+from test.common_helper import CommonDatabaseMock, create_test_firmware
 
 fw_one = create_test_firmware(device_name='dev_1', all_files_included_set=True)
 fw_two = create_test_firmware(device_name='dev_2', bin_path='container/test.7z', all_files_included_set=True)
@@ -12,14 +11,12 @@ fw_three = create_test_firmware(device_name='dev_3', bin_path='container/test.ca
 
 @pytest.fixture
 def compare_plugin():
-    yield ComparePlugin(view_updater=CommonDatabaseMock())
+    return ComparePlugin(view_updater=CommonDatabaseMock())
 
 
-@pytest.mark.cfg_defaults(
+@pytest.mark.backend_config_overwrite(
     {
-        'expert-settings': {
-            'ssdeep-ignore': '80',
-        },
+        'ssdeep_ignore': 80,
     }
 )
 class TestPluginBase:
@@ -42,7 +39,7 @@ class MockFileObject:
 
 
 @pytest.mark.parametrize(
-    'fo_list, dependencies, expected_output',
+    ('fo_list', 'dependencies', 'expected_output'),
     [
         ([MockFileObject([])], ['a'], {'a'}),
         ([MockFileObject(['a'])], ['a'], set()),

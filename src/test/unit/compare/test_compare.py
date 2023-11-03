@@ -1,24 +1,20 @@
-# pylint: disable=wrong-import-order,protected-access,no-self-use,unused-argument
 import pytest
 
 from compare.compare import Compare
 from compare.PluginBase import CompareBasePlugin
-from helperFunctions.hash import get_ssdeep
 from test.common_helper import create_test_file_object, create_test_firmware
 
 
 @pytest.fixture(autouse=True)
-def no_compare_views(monkeypatch):
-    monkeypatch.setattr(CompareBasePlugin, '_sync_view', value=lambda s, p: None)
+def _no_compare_views(monkeypatch):
+    monkeypatch.setattr(CompareBasePlugin, '_sync_view', value=lambda *_: None)
 
 
 class MockDbInterface:
     def __init__(self):
         self.fw = create_test_firmware()
         self.fo = create_test_file_object()
-        self.fo.processed_analysis['file_hashes'] = {'ssdeep': get_ssdeep(self.fo.binary)}
         self.fw.add_included_file(self.fo)
-        self.fw.processed_analysis['file_hashes'] = {'ssdeep': get_ssdeep(self.fw.binary)}
 
     def get_object(self, uid, analysis_filter=None):
         if uid == self.fw.uid:
@@ -36,6 +32,9 @@ class MockDbInterface:
     def get_vfp_of_included_text_files(self, root_uid, blacklist=None):
         return {}
 
+    def get_vfps_for_uid_list(self, uid_list, root_uid=None):
+        return {}
+
 
 @pytest.fixture
 def compare_system():
@@ -43,9 +42,7 @@ def compare_system():
 
 
 fw_one = create_test_firmware(device_name='dev_1', all_files_included_set=True)
-fw_one.processed_analysis['file_hashes'] = {'ssdeep': get_ssdeep(fw_one.binary)}
 fw_two = create_test_firmware(device_name='dev_2', bin_path='container/test.7z', all_files_included_set=True)
-fw_two.processed_analysis['file_hashes'] = {'ssdeep': get_ssdeep(fw_two.binary)}
 
 
 def test_compare_objects(compare_system):
@@ -72,7 +69,7 @@ def test_create_general_section_dict(compare_system):
     assert result['version'][fw_one.uid] == '0.1'
     assert result['release_date'][fw_one.uid] == '1970-01-01'
     assert result['size'][fw_one.uid] == len(fw_one.binary)
-    assert result['virtual_file_path'][fw_one.uid] == [fw_one.uid]
+    assert result['virtual_file_path'][fw_one.uid] == [fw_one.file_name]
 
 
 def test_plugin_system(compare_system):

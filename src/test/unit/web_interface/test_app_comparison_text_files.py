@@ -11,7 +11,7 @@ class MockInterCom(CommonIntercomMock):
     def get_file_diff(uid_pair: tuple[str, str]) -> str | None:
         if TEST_TEXT_FILE.uid in uid_pair:
             return f'file diff {TEST_TEXT_FILE.file_name}'
-        assert False, 'if this point was reached, something went wrong'
+        raise AssertionError('if this point was reached, something went wrong')
 
 
 class DbMock(CommonDatabaseMock):
@@ -24,7 +24,7 @@ class DbMock(CommonDatabaseMock):
             return create_test_firmware(device_name='fw1')
         if uid == 'file_2_root_uid':
             return create_test_firmware(device_name='fw2')
-        assert False, 'if this point was reached, something went wrong'
+        raise AssertionError('if this point was reached, something went wrong')
 
 
 @pytest.mark.WebInterfaceUnitTestConfig(
@@ -35,21 +35,21 @@ class DbMock(CommonDatabaseMock):
 )
 class TestAppComparisonTextFiles:
     def test_comparison_text_files(self, test_client):
-        TEST_TEXT_FILE.processed_analysis['file_type']['mime'] = 'text/plain'
-        TEST_TEXT_FILE2.processed_analysis['file_type']['mime'] = 'text/plain'
+        TEST_TEXT_FILE.processed_analysis['file_type']['result']['mime'] = 'text/plain'
+        TEST_TEXT_FILE2.processed_analysis['file_type']['result']['mime'] = 'text/plain'
         response = _load_diff(test_client)
         # As the javascript rendering is done clientside we test if the diff string is valid
         assert TEST_TEXT_FILE.file_name in response.decode()
 
     def test_wrong_mime_type(self, test_client):
-        TEST_TEXT_FILE.processed_analysis['file_type']['mime'] = 'text/plain'
-        TEST_TEXT_FILE2.processed_analysis['file_type']['mime'] = 'some/type'
+        TEST_TEXT_FILE.processed_analysis['file_type']['result']['mime'] = 'text/plain'
+        TEST_TEXT_FILE2.processed_analysis['file_type']['result']['mime'] = 'some/type'
         response = _load_diff(test_client)
         assert b'compare non-text mimetypes' in response
 
     def test_analysis_not_finished(self, test_client):
-        TEST_TEXT_FILE.processed_analysis['file_type']['mime'] = None
-        TEST_TEXT_FILE2.processed_analysis['file_type']['mime'] = None
+        TEST_TEXT_FILE.processed_analysis['file_type']['result']['mime'] = None
+        TEST_TEXT_FILE2.processed_analysis['file_type']['result']['mime'] = None
         response = _load_diff(test_client)
         assert b'file_type analysis is not finished' in response
 

@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
-from typing import Any, Callable, Iterator, List, Tuple
+from typing import Any, Callable, Iterator, List, Tuple, TYPE_CHECKING
 
 from sqlalchemy import column, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import InstrumentedAttribute, aliased
-from sqlalchemy.sql import Select
 
 from storage.db_interface_base import ReadOnlyDbInterface, ReadWriteDbInterface
 from storage.schema import AnalysisEntry, FileObjectEntry, FirmwareEntry, StatsEntry
+
+if TYPE_CHECKING:
+    from sqlalchemy.sql import Select
 
 Stats = List[Tuple[str, int]]
 RelativeStats = List[Tuple[str, int, float]]  # stats with relative share as third element
@@ -68,6 +70,18 @@ class StatsUpdateDbInterface(ReadWriteDbInterface):
             if self._filter_is_not_empty(q_filter):
                 query = query.filter_by(**q_filter)
             return session.execute(query).scalar()
+
+    def get_fo_count(self) -> int:
+        with self.get_read_only_session() as session:
+            query = select(func.count(FileObjectEntry.uid))
+            count = session.execute(query).scalar()
+            return int(count) if count is not None else 0
+
+    def get_cumulated_fo_size(self) -> int:
+        with self.get_read_only_session() as session:
+            query = select(func.sum(FileObjectEntry.size))
+            sum_ = session.execute(query).scalar()
+            return int(sum_) if sum_ is not None else 0
 
     def count_distinct_values(self, key: InstrumentedAttribute, q_filter=None) -> Stats:
         """
@@ -264,12 +278,11 @@ class StatsUpdateDbInterface(ReadWriteDbInterface):
     def _join_all(query):
         # join all FOs (root fw objects and included objects)
         query = query.join(FileObjectEntry, AnalysisEntry.uid == FileObjectEntry.uid)
-        query = query.join(
+        return query.join(
             FirmwareEntry,
             # is included FO | is root FO
             (FileObjectEntry.root_firmware.any(uid=FirmwareEntry.uid)) | (FileObjectEntry.uid == FirmwareEntry.uid),
         )
-        return query
 
     @staticmethod
     def _filter_is_not_empty(query_filter: dict | None) -> bool:

@@ -11,9 +11,9 @@ from storage.schema import AnalysisEntry, FileObjectEntry, FirmwareEntry
 
 
 class StatsUpdater:
-    '''
+    """
     This class handles statistic generation
-    '''
+    """
 
     def __init__(self, stats_db: StatsUpdateDbInterface | None = None):
         self.db = stats_db if stats_db else StatsUpdateDbInterface()
@@ -51,11 +51,13 @@ class StatsUpdater:
                 'number_of_firmwares': self.db.get_count(q_filter=self.match, firmware=True),
                 'total_firmware_size': self.db.get_sum(FileObjectEntry.size, q_filter=self.match, firmware=True),
                 'average_firmware_size': self.db.get_avg(FileObjectEntry.size, q_filter=self.match, firmware=True),
-                'number_of_unique_files': self.db.get_count(q_filter=self.match, firmware=False),
-                'total_file_size': self.db.get_sum(FileObjectEntry.size, q_filter=self.match, firmware=False),
-                'average_file_size': self.db.get_avg(FileObjectEntry.size, q_filter=self.match, firmware=False),
+                'number_of_unique_files': self.db.get_fo_count(),
+                'total_file_size': self.db.get_cumulated_fo_size(),
                 'creation_time': time(),
             }
+        stats['average_file_size'] = (
+            stats['total_file_size'] / stats['number_of_unique_files'] if stats['number_of_unique_files'] > 0 else 0
+        )
         benchmark = stats['creation_time'] - self.start_time
         stats['benchmark'] = benchmark
         logging.info(f'time to create stats: {time_format(benchmark)}')
@@ -64,7 +66,7 @@ class StatsUpdater:
     @staticmethod
     def _filter_results(stats: Stats) -> Stats:
         blacklist = ['not available', 'clean']
-        return [item for item in stats if not item[0] in blacklist]
+        return [item for item in stats if item[0] not in blacklist]
 
     def get_exploit_mitigations_stats(self) -> dict[str, RelativeStats]:
         result = self.db.count_values_in_summary(plugin='exploit_mitigations', q_filter=self.match)

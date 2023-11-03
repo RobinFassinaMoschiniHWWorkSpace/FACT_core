@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from test.common_helper import MockFileObject  # pylint: disable=wrong-import-order
+from test.common_helper import MockFileObject
 
 from ..code.information_leaks import AnalysisPlugin, _check_file_path, _check_for_directories, _check_for_files
 
@@ -15,7 +15,7 @@ class TestAnalysisPluginInformationLeaks:
         fo = MockFileObject()
         fo.binary = (TEST_DATA_DIR / 'path_test_file').read_bytes()
         fo.processed_analysis[analysis_plugin.NAME] = {}
-        fo.processed_analysis['file_type'] = {'mime': 'application/x-executable'}
+        fo.processed_analysis['file_type'] = {'result': {'mime': 'application/x-executable'}}
         fo.virtual_file_path = {}
         analysis_plugin.process_object(fo)
 
@@ -38,7 +38,7 @@ class TestAnalysisPluginInformationLeaks:
 
     def test_find_artifacts(self, analysis_plugin):
         fo = MockFileObject()
-        fo.processed_analysis['file_type'] = {'mime': 'text/plain'}
+        fo.processed_analysis['file_type'] = {'result': {'mime': 'text/plain'}}
         fo.virtual_file_path = {
             1: [
                 'some_uid|/home/user/project/.git/config',
@@ -72,5 +72,5 @@ class TestAnalysisPluginInformationLeaks:
 def test_check_file_path():
     # if multiple rules match, only the first should appear in the result
     svn_path = '/home/user/project/.svn/entries'
-    assert _check_for_files(svn_path) and _check_for_directories(svn_path), 'both rules should match'
+    assert _check_for_files(svn_path) and _check_for_directories(svn_path), 'both rules should match'  # noqa: PT018
     assert _check_file_path(svn_path) == {'svn_entries': ['/home/user/project/.svn/entries']}

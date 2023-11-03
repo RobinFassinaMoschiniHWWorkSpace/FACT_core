@@ -1,16 +1,18 @@
+from http import HTTPStatus
+
 YARA_TEST_RULE = 'rule rulename {strings: $a = "foobar" condition: $a}'
 
 
 def test_no_data(test_client):
     response = test_client.post('/rest/binary_search')
-    assert response.status_code == 400
+    assert response.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
 
 
 def test_no_rule_file(test_client):
     result = test_client.post('/rest/binary_search', json={}).json
     assert 'Input payload validation failed' in result['message']
     assert 'errors' in result
-    assert '\'rule_file\' is a required property' in result['errors']['rule_file']
+    assert "'rule_file' is a required property" in result['errors']['rule_file']
 
 
 def test_wrong_rule_file_format(test_client):

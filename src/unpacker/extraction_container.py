@@ -1,17 +1,25 @@
 from __future__ import annotations
 
+from http import HTTPStatus
 import logging
-import multiprocessing
 from contextlib import suppress
 from os import getgid, getuid
-from tempfile import TemporaryDirectory
+from pathlib import Path
 
 import docker
+import requests
 from docker.errors import APIError, DockerException
-from docker.models.containers import Container
 from docker.types import Mount
+from requests.adapters import HTTPAdapter, Retry
 
-from config import cfg
+import config
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from docker.models.containers import Container
+    from requests.adapters import Response
+    from tempfile import TemporaryDirectory
+    import multiprocessing
 
 DOCKER_CLIENT = docker.from_env()
 EXTRACTOR_DOCKER_IMAGE = 'fkiecad/fact_extractor'
@@ -21,9 +29,10 @@ class ExtractionContainer:
     def __init__(self, id_: int, tmp_dir: TemporaryDirectory, value: multiprocessing.managers.ValueProxy):
         self.id_ = id_
         self.tmp_dir = tmp_dir
-        self.port = cfg.unpack.base_port + id_
+        self.port = config.backend.unpacking.base_port + id_
         self.container_id = None
         self.exception = value
+        self._adapter = HTTPAdapter(max_retries=Retry(total=3, backoff_factor=0.1))
 
     def start(self):
         if self.container_id is not None:
@@ -40,7 +49,7 @@ class ExtractionContainer:
         container = DOCKER_CLIENT.containers.run(
             image=EXTRACTOR_DOCKER_IMAGE,
             ports={'5000/tcp': self.port},
-            mem_limit=f'{cfg.unpack.memory_limit}m',
+            mem_limit=f'{config.backend.unpacking.memory_limit}m',
             mounts=[volume],
             volumes={'/dev': {'bind': '/dev', 'mode': 'rw'}},
             privileged=True,
@@ -103,3 +112,21 @@ class ExtractionContainer:
     def get_logs(self) -> str:
         container = self._get_container()
         return container.logs().decode(errors='replace')
+
+    def start_unpacking(self, tmp_dir: str, timeout: int | None = None) -> Response:
+        response = self._check_connection()
+        if response.status_code != HTTPStatus.OK:
+            return response
+        url = f'http://localhost:{self.port}/start/{Path(tmp_dir).name}'
+        return requests.get(url, timeout=timeout)
+
+    def _check_connection(self) -> Response:
+        """
+        Try to access the /status endpoint of the container to make sure the container is ready.
+        The `self._adapter` includes a retry in order to wait if the connection cannot be established directly.
+        We can't retry on the actual /start endpoint (or else we would start unpacking multiple times).
+        """
+        url = f'http://localhost:{self.port}/status'
+        with requests.Session() as session:
+            session.mount('http://', self._adapter)
+            return session.get(url, timeout=5)

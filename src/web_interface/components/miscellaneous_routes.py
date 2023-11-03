@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-from collections.abc import Sized
 from pathlib import Path
 from time import time
+from typing import TYPE_CHECKING
 
 from flask import redirect, render_template, request, url_for
 from flask_security import login_required
 
-from config import cfg
-from helperFunctions.database import ConnectTo, get_shared_session
+import config
+from helperFunctions.database import get_shared_session
 from helperFunctions.web_interface import format_time
 from statistic.update import StatsUpdater
-from web_interface.components.component_base import GET, POST, AppRoute, ComponentBase
+from web_interface.components.component_base import AppRoute, ComponentBase, GET, POST
 from web_interface.security.decorator import roles_accepted
 from web_interface.security.privileges import PRIVILEGES
+
+if TYPE_CHECKING:
+    from collections.abc import Sized
 
 
 class MiscellaneousRoutes(ComponentBase):
@@ -25,12 +28,12 @@ class MiscellaneousRoutes(ComponentBase):
     @roles_accepted(*PRIVILEGES['status'])
     @AppRoute('/', GET)
     def show_home(self):
-        latest_count = cfg.database.number_of_latest_firmwares_to_display
+        latest_count = config.frontend.number_of_latest_firmwares_to_display
         with get_shared_session(self.db.frontend) as frontend_db:
             latest_firmware_submissions = frontend_db.get_last_added_firmwares(latest_count)
             latest_comments = frontend_db.get_latest_comments(latest_count)
         latest_comparison_results = self.db.comparison.page_comparison_results(limit=10)
-        ajax_stats_reload_time = cfg.database.ajax_stats_reload_time
+        ajax_stats_reload_time = config.frontend.ajax_stats_reload_time
         general_stats = self.stats_updater.get_general_stats()
 
         return render_template(
@@ -43,7 +46,7 @@ class MiscellaneousRoutes(ComponentBase):
         )
 
     @AppRoute('/about', GET)
-    def show_about(self):  # pylint: disable=no-self-use
+    def show_about(self):
         return render_template('about.html')
 
     @roles_accepted(*PRIVILEGES['comment'])
@@ -110,13 +113,12 @@ class MiscellaneousRoutes(ComponentBase):
     @roles_accepted(*PRIVILEGES['view_logs'])
     @AppRoute('/admin/logs', GET)
     def show_logs(self):
-        with ConnectTo(self.intercom) as sc:
-            backend_logs = '\n'.join(sc.get_backend_logs())
+        backend_logs = '\n'.join(self.intercom.get_backend_logs())
         frontend_logs = '\n'.join(self._get_frontend_logs())
         return render_template('logs.html', backend_logs=backend_logs, frontend_logs=frontend_logs)
 
     def _get_frontend_logs(self):
-        frontend_logs = Path(cfg.logging.logfile_frontend)
+        frontend_logs = Path(config.frontend.logging.file_frontend)
         if frontend_logs.is_file():
             return frontend_logs.read_text().splitlines()[-100:]
         return []
