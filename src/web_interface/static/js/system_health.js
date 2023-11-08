@@ -106,39 +106,37 @@ function updatePluginCard(pluginName, pluginData) {
     }
     queueElement.innerText = pluginData.queue.toString();
     outQueueElement.innerText = pluginData.out_queue.toString();
-    if (pluginData.stats !== null) {
-        statsElement.innerHTML = `
-            <table class="table table-sm table-striped" style="margin-left: 16px">
+    statsElement.innerHTML = getPluginRuntimeStats(pluginData.stats);
+}
+
+function getPluginRuntimeStats(stats) {
+    if (stats !== null) {
+        return `
+            <table class="table table-sm table-striped m-0" style="margin-left: 16px">
                 <tbody>
                     <tr>
-                        <td style="width: 10px; text-align: right;">min</td>
-                        <td>${pluginData.stats.min}s</td>
+                        <td style="width: 25%; text-align: right;">min</td>
+                        <td style="width: 25%;">${stats.min}s</td>
+                        <td style="width: 25%; text-align: right;">max</td>
+                        <td style="width: 25%;">${stats.max}s</td>
                     </tr>
                     <tr>
-                        <td style="width: 10px; text-align: right;">max</td>
-                        <td>${pluginData.stats.max}s</td>
+                        <td style="text-align: right;">mean</td>
+                        <td>${stats.mean}s</td>
+                        <td style="text-align: right;">median</td>
+                        <td>${stats.median}s</td>
                     </tr>
                     <tr>
-                        <td style="width: 10px; text-align: right;">mean</td>
-                        <td>${pluginData.stats.mean}s</td>
-                    </tr>
-                    <tr>
-                        <td style="width: 10px; text-align: right;">median</td>
-                        <td>${pluginData.stats.median}s</td>
-                    </tr>
-                    <tr>
-                        <td style="width: 10px; text-align: right;">std.dev.</td>
-                        <td>${pluginData.stats.std_dev}s</td>
-                    </tr>
-                    <tr>
-                        <td style="width: 10px; text-align: right;">count</td>
-                        <td>${pluginData.stats.count}</td>
+                        <td style="text-align: right;">std.dev.</td>
+                        <td>${stats.std_dev}s</td>
+                        <td style="text-align: right;">count</td>
+                        <td>${stats.count}</td>
                     </tr>
                 </tbody>
             </table>
         `;
     } else {
-        statsElement.innerHTML = `N/A`;
+        return `N/A`;
     }
 }
 

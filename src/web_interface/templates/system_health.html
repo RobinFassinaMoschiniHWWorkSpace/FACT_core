@@ -72,47 +72,6 @@
     </div>
 {% endmacro %}
 
-{% macro plugin_card(plugin_name) %}
-    {% set description, _, __, version, dependencies, blacklist, whitelist, threads = analysis_plugin_info[plugin_name] %}
-    <div class="card m-2" style="width: 430px;">
-        <div class="card-body">
-            <h5 class="card-title">{{ plugin_name }}</h5>
-            <h6 class="card-subtitle mb-2 text-muted">{{ version }}</h6>
-
-            <div class="collapse m-0 p-0 mt-3" id="{{ plugin_name }}">
-                <span class="card-text">
-                    {{ description }}
-                </span>
-                <table class="table table-borderless mb-0 table-sm">
-                    <tr>
-                        {{ icon_tooltip_desk('project-diagram', 'Plugin dependencies') }}
-                        <td>{{ dependencies | list_group_collapse | safe}}</td>
-                    </tr>
-                    <tr>
-                        {{ icon_tooltip_desk('flag', 'Blacklisted file types') }}
-                        <td>{{ blacklist | list_group_collapse | safe }}</td>
-                    </tr>
-                    <tr>
-                        {{ icon_tooltip_desk('flag', 'Whitelisted file types', icon_class='far') }}
-                        <td>{{ whitelist | list_group_collapse | safe }}</td>
-                    </tr>
-                    <tr>
-                        {{ icon_tooltip_desk('chart-bar', 'Analysis stats', icon_class='far') }}
-                        <td id="{{ plugin_name }}-stats"></td>
-                    </tr>
-
-                </table>
-            </div>
-
-            {% set button_id = "bt-" + plugin_name %}
-            <button class="btn btn-outline-secondary btn-sm btn-block mt-3" data-toggle="collapse" data-target="#{{ plugin_name }}" onclick="change_button('{{ button_id }}')">
-                <i id="{{ button_id }}" class="fas fa-caret-down"></i>
-            </button>
-
-        </div>
-    </div>
-{% endmacro %}
-
 {% block body %}
 
 <div class="row justify-content-center mt-4">
@@ -122,9 +81,9 @@
 </div>
 
 <div class="row justify-content-center mt-4">
-    {# anaylsis plugin status #}
-    <div class="col-3">
-        <div class="card m-2" style="width: 430px;">
+    {# analysis plugin status #}
+    <div class="col-md-12 col-lg-6 col-xl-5">
+        <div class="card m-2" style="width: 100%;">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center" style="width: 100%">
                     <h5 class="card-title">Analysis Plugin Status</h5>
@@ -152,6 +111,14 @@
                                 <i class="fas fa-sign-out-alt" style="color: darkgrey" id="{{ plugin_name }}-out-queue-indicator"></i>
                             </td>
                             <td style="width: 40px;" id="{{ plugin_name }}-out-queue"></td>
+                            <td style="width: 0px;" data-toggle="tooltip" data-placement="bottom" title="Show runtime stats">
+                                <span class="fas fa-chart-bar clickable" style="color: #007bff;"
+                                      data-toggle="collapse" data-target="#{{ plugin_name }}-stats-collapse">
+                                </span>
+                            </td>
+                        </tr>
+                        <tr class="collapse" id="{{ plugin_name }}-stats-collapse">
+                            <td colspan="10" class="p-0" id="{{ plugin_name }}-stats"></td>
                         </tr>
                     {% endfor %}
                 </table>
@@ -159,10 +126,10 @@
         </div>
     </div>
 
-    <div class="col-3">
+    <div class="col-md-12 col-lg-6 col-xl-4">
         <!-- Current Analyses -->
         <div class="row justify-content-center">
-            <div class="card m-2" style="width: 430px;">
+            <div class="card m-2" style="width: 100%;">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center" style="width: 100%">
                         <h5 class="card-title">Currently analyzed firmware</h5>
@@ -179,20 +146,5 @@
         </div>
     </div>
 </div>
-
-{% if analysis_plugin_info %}
-        <div class="row justify-content-center my-3">
-            <div style="width: 430px;" class="border-secondary border-top border-bottom align-middle">
-                <h5 class="d-flex justify-content-center mb-0 p-2">Analysis Plugins</h5>
-            </div>
-        </div>
-        <div class="row justify-content-center">
-            {% for plugin_name in analysis_plugin_info | sort %}
-                {% if plugin_name != "unpacker" %}
-                    {{ plugin_card(plugin_name) }}
-                {% endif %}
-            {% endfor %}
-        </div>
-{% endif %}
 
 {% endblock %}
