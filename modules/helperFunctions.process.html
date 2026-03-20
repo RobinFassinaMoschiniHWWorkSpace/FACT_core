@@ -270,7 +270,7 @@ FACT backend.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>processes</strong> (<em>list</em><em>[</em><em>Process</em><em>]</em>) – The list of processes that should be stopped.</p></li>
+<li><p><strong>processes</strong> (<em>list</em><em>[</em><em>multiprocessing.context.Process</em><em>]</em>) – The list of processes that should be stopped.</p></li>
 <li><p><strong>timeout</strong> (<em>float</em>) – Timeout for joining the process in seconds.</p></li>
 </ul>
 </dd>
@@ -280,13 +280,10 @@ FACT backend.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="helperFunctions.process.terminate_process_and_children">
 <span class="sig-prename descclassname"><span class="pre">helperFunctions.process.</span></span><span class="sig-name descname"><span class="pre">terminate_process_and_children</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">process</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#helperFunctions.process.terminate_process_and_children" title="Permalink to this definition"></a></dt>
-<dd><p>Terminate a process and all of its child processes.</p>
+<dd><p>Terminate a process and all of its child processes recursively.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>process</strong> (<em>Process</em>) – The process to be terminated.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
+<dd class="field-odd"><p><strong>process</strong> (<em>Process</em><em> | </em><em>psutil.Process</em>) – The process to be terminated.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -304,7 +301,7 @@ FACT backend.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2020-2023  Fraunhofer FKIE.</p>
+    <p>&#169; Copyright 2020-2024  Fraunhofer FKIE.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
